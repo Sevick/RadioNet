@@ -1,0 +1,40 @@
+Jazz
+ Audiophile Jazz	http://50.7.173.162:2199/tunein/jazz.pls	http://50.7.173.162:8014/
+ Concertzender: Jazz	http://www.concertzender.nl/streams/jazz.att	http://streams.greenhost.nl:8080/jazz
+ Concertzender: JazzNotJazz	http://www.concertzender.nl/streams/jazznotjazz.att	http://streams.greenhost.nl:8080/jazznotjazz
+ Concertzender: HardBop	http://www.concertzender.nl/streams/hardbop.att	http://streams.greenhost.nl:8080/hardbop
+ SmoothJazz by EuropaRadioJazz		http://198.27.80.37:5370/
+ Yourdemobox Radio - Jazz Only		http://cast.iplayradio.net:8093/
+ WCFA 101.5		http://209.105.232.220:8574/
+ CRo: Jazz		http://stream3.rozhlas.cz:8000/jazz_high.ogg
+ Linn: Jazz		http://89.16.185.174:8000/stream
+Classic
+ Audiophile Baroque	http://50.7.173.162:2199/tunein/baroque.pls	http://50.7.173.162:8010/
+ Audiophile Classical	http://50.7.173.162:2199/tunein/classical.pls	http://50.7.173.162:8012/
+ Concertzender: Classic	http://www.concertzender.nl/streams/klassiek.att	http://streams.greenhost.nl:8080/klassiek	http://streams.greenhost.nl:8080/klassiek	http://streams.greenhost.nl:8080/klassiek
+ AVRO De Klassieken 24/7		http://icecast.omroep.nl/radio4-klassieken-bb-mp3
+ Linn: Classical		http://89.16.185.174:8004/stream
+DemoScene
+ Ai 320Kbps	http://ai-radio.org/hifi.m3u	http://hi-fi.ai-radio.org:8000/320.ogg
+Dubstep
+ PartyVibeRadio: Drum & Bass	http://www.partyviberadio.com:2199/tunein/breakbeat.pls	http://206.190.152.194:8004/
+ Bassjunkees.com		http://space.ducks.invasion.started.at.bassjunkees.com:8442/
+ Musiclovers.FM DubLovers		http://stream1.ml0.t4e.dj:80/dublovers_high.mp3
+Chillout
+ Chill Out Zone	http://cp.eu1.fastcast4u.com:2199/tunein/chillout.pls	http://eu1.fastcast4u.com:3078/320k
+ Yourdemobox - Ambient & Chillout	http://88.198.10.229:2199/tunein/ydbambient.pls	http://cast.iplayradio.net:8051/
+ Concertzender: Ambient		http://streams.greenhost.nl:8080/gehoordestilte
+ PartyVibe: Chillout		http://www.partyvibe.com:8008/
+ Munich radio chillout		http://www.munich-radio.de:8000/
+ R.A.D.I.O. 4 2 : Music For Lounge-Lovers	http://lounge-high.rautemusik.fm/listen.pls	http://lounge-high.rautemusik.fm
+Trance
+ PartyVibeRadio: PsyTrance	http://www.partyviberadio.com:2199/tunein/psytrance.pls	http://206.190.152.194:8010/
+ trance.fm: [UK1] Classic Channel - 320 kbs	http://www.trance.fm/play/classic320.pls	http://listen.trance.fm/3/320	http://listen.trance.fm/3/320/02
+ Yourdemobox - Trance Worldwide	http://88.198.10.229:2199/tunein/ydbtrance.pls	http://cast.iplayradio.net:8085/
+ Psyradio.com.ua	http://psyradio.com.ua/PsyRadio_256kbps.m3u	http://stream.psyradio.com.ua:8000/256kbps
+ Radio Schizoid - Escape Reality :-)	http://schizoid.in/schizoid-psy.pls	http://78.46.73.237:8000/schizoid	http://88.198.48.36:8000/schizoid
+ trance.fm: [UK1] Trance Channel - 320 kbs	http://www.trance.fm/play/tc320.pls	http://listen.trance.fm/1/320	http://listen.trance.fm/1/320/02
+ Trippin Shaman		http://209.105.232.220:8730/
+ GoHamRadio: Trance		http://uk1.internet-radio.com:15938/
+Reggae
+ PartyVibeRadio: Reggae	http://www.partyviberadio.com:2199/tunein/reggae.pls	http://206.190.152.194:8000/

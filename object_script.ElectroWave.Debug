@@ -1,0 +1,12 @@
+INPUT(
+./debug\main.o
+./debug\mainwindow.o
+./debug\targetver.o
+./debug\netradio.o
+./debug\myglobalhandler.o
+./debug\climitsingleinstance.o
+./debug\qrc_Rplayer.o
+./debug\moc_mainwindow.o
+./debug\moc_mythread.o
+./debug\moc_myglobalhandler.o
+);
