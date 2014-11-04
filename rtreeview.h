@@ -23,7 +23,7 @@ public:
 signals:
     void changed(const QMimeData *mimeData = 0);
     void AddStationSig(QModelIndex pParent,RadioCL* pRadio);
-
+    void treeSelectionChanged(const QModelIndex & pCurrent, const QModelIndex & pPrevious);
 
 protected:
     void dragEnterEvent(QDragEnterEvent *event);
@@ -31,6 +31,7 @@ protected:
     void dragLeaveEvent(QDragLeaveEvent *event);
     void dropEvent(QDropEvent *event);
 
+    void currentChanged(const QModelIndex & pCurrent, const QModelIndex & pPrevious);
 public slots:
 
 

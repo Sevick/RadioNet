@@ -6,6 +6,7 @@
 #include <QNetworkProxy>
 #include <QEventLoop>
 #include <QSettings>
+#include <QApplication>
 
 #include "playlistcl.h"
 #include "defs.h"
@@ -57,23 +58,25 @@ RadioCL* PlaylistCL::Parse(QUrl pURL){
 
         QNetworkRequest req;
         req.setUrl(pURL);
-        if (pURL.url().indexOf("https")==0){
-//!!!
-        }
         QNetworkReply *tRemotePlaylist=manager->get(req);
-
 
 
         QEventLoop loop;
         connect(manager, SIGNAL(finished(QNetworkReply*)), &loop, SLOT(quit()));
+        QApplication::setOverrideCursor(Qt::WaitCursor);
         loop.exec();
+        QApplication::restoreOverrideCursor();
 
         qDebug()<<"Got replay:"<<tRemotePlaylist->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (tRemotePlaylist->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()==0)
+                return(NULL);
 
         QString tPlaylist=QString(tRemotePlaylist->readAll());
         qDebug()<<"Got playlist as:"<<tPlaylist;
-        qDebug()<<"Headers are:"<<tRemotePlaylist->rawHeaderList();
-        qDebug()<<"Content-Disposition:"<<tRemotePlaylist->rawHeader("Content-Disposition");
+        if (tPlaylist=="")
+            return(NULL);
+        //qDebug()<<"Headers are:"<<tRemotePlaylist->rawHeaderList();
+        //qDebug()<<"Content-Disposition:"<<tRemotePlaylist->rawHeader("Content-Disposition");
 
         QFile tTempFile(GetTempFilePath());
         if (!tTempFile.open(QIODevice::WriteOnly | QIODevice::Truncate)){

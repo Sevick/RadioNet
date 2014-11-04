@@ -52,7 +52,7 @@ class TreeItem
 {
 public:
     //explicit TreeItem(const QVector<QVariant> &data, QString pRadioURL, TreeItem *parent = 0);
-    explicit TreeItem(const QVector<QVariant> &data, RadioCL* pRadio, TreeItem *parent = 0);
+    explicit  TreeItem(const QVector<QVariant> &data, RadioCL* pRadio = NULL, TreeItem *parent = 0);
     ~TreeItem();
 
     TreeItem *child(int number);
@@ -72,6 +72,8 @@ public:
     RadioCL* getRadio(){ return Radio;};
     void setRadio(RadioCL* pRadio){ if (Radio!=NULL) delete Radio; Radio=pRadio;};
     void unsetRadio(){ if (Radio!=NULL) delete Radio; Radio=NULL; };
+
+
 
 
 private:

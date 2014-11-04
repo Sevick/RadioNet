@@ -71,6 +71,10 @@ TreeModel::TreeModel(QObject *parent)
         rootData << header;
     rootItem = new TreeItem(rootData,NULL);
 
+    //qDebug()<<rFile.readAll();
+    //rFile.close();
+    //rFile.open(QIODevice::ReadOnly);
+
     setupModelData(QString(rFile.readAll()).split(QString("\n")), rootItem);
     rFile.close();
     if (rFile.fileName()!=radioListFile){
@@ -236,6 +240,13 @@ bool TreeModel::setData(const QModelIndex &index, const QVariant &value, int rol
     TreeItem *item = getItem(index);
     bool result = item->setData(index.column(), value);
 
+    if (index.column()==0){
+        if (item->getRadio()){
+            item->getRadio()->SetTitle(value.toString());
+        }
+        saveToDisk();
+    }
+
     if (result)
         emit dataChanged(index, index);
 
@@ -269,6 +280,9 @@ void TreeModel::setupModelData(const QStringList &lines, TreeItem *parent)
     qDebug()<<"Setting up model data";
 
     while (number < lines.count()) {
+
+        //qDebug()<<lines.at(number);
+
         int position = 0;
         while (position < lines[number].length()) {
             if (lines[number].mid(position, 1) != " ")
@@ -279,12 +293,9 @@ void TreeModel::setupModelData(const QStringList &lines, TreeItem *parent)
         QString lineData = lines[number].mid(position).trimmed();
 
         if (!lineData.isEmpty()) {
-            // Read the column data from the rest of the line.
-            //QStringList columnStrings = lineData.split("\t", QString::SkipEmptyParts);
             QStringList columnStrings = lineData.split("\t");
-            QVector<QVariant> columnData;
-            //QString curRadioURL;
 
+            QVector<QVariant> columnData;
 
             for (int column = 0; column < columnStrings.count(); ++column)
                     columnData << columnStrings[column];
@@ -305,9 +316,6 @@ void TreeModel::setupModelData(const QStringList &lines, TreeItem *parent)
                     indentations.pop_back();
                 }
             }
-
-
-
 
 
             // Append a new item to the current parent's list of children.
@@ -336,8 +344,9 @@ void TreeModel::setupModelData(const QStringList &lines, TreeItem *parent)
             parent->insertChildren(parent->childCount(), 1, rootItem->columnCount(),tRadioData);
             parent->unsetRadio();
 
+            // !!!
+            parent->child(parent->childCount() - 1)->setData(1, columnData[0]);
 
-            parent->child(parent->childCount() - 1)->setData(1, columnData[1]);
         }
 
         ++number;
@@ -400,4 +409,8 @@ QString TreeModel::GetAppDataDir(){
     return(AppPath+"radiolist.txt");
 }
 
-
+/*
+QModelIndex TreeModel::getRootIndex(){
+    return (QStandardItemModel::invisibleRootItem()->index());
+}
+*/

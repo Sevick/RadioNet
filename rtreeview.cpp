@@ -12,20 +12,19 @@
 #include "treeitem.h"
 #include "playlistcl.h"
 
-RTreeView::RTreeView(QWidget *parent) :
-    QTreeView(parent)
-{
+
+RTreeView::RTreeView(QWidget *parent) :  QTreeView(parent){
     setAcceptDrops(true);
 }
 
-void RTreeView::dragMoveEvent(QDragMoveEvent *event)
-{
+
+void RTreeView::dragMoveEvent(QDragMoveEvent *event){
     event->acceptProposedAction();
     //connect(this, SIGNAL(changed(const QMimeData*)),this, SLOT(updateFormatsTable(const QMimeData*)));
 }
 
-void RTreeView::dropEvent(QDropEvent *event)
-{
+
+void RTreeView::dropEvent(QDropEvent *event){
     const QMimeData *mimeData = event->mimeData();
 
     qDebug()<<"Drop event urls="<<mimeData->urls();
@@ -166,14 +165,15 @@ void RTreeView::dropEvent(QDropEvent *event)
     event->acceptProposedAction();
 }
 
+
 void RTreeView::SetProxyModel(QAbstractItemModel* pNewModel){
     sourceModel=(TreeModel*) model();
     proxyModel=(TreeSortFilterProxyModel*)pNewModel;
     setModel(pNewModel);
 }
 
-RadioCL* RTreeView::ParsePls(QString pFileName){
 
+RadioCL* RTreeView::ParsePls(QString pFileName){
     QSettings tPlsSettings(pFileName,QSettings::IniFormat);
 
     int tEntries=tPlsSettings.value("playlist/NumberOfEntries").toInt();
@@ -198,6 +198,7 @@ RadioCL* RTreeView::ParsePls(QString pFileName){
     return tNewRadio;
 }
 
+
 RadioCL* RTreeView::ParseM3U(QString pFileName){
     QFile tListFile(pFileName);
     if (!tListFile.open(QIODevice::ReadOnly)){
@@ -213,29 +214,35 @@ RadioCL* RTreeView::ParseM3U(QString pFileName){
     return tNewRadio;
 }
 
-void RTreeView::AddRadio(RadioCL* pNewRadio,QModelIndex pParent){
 
+void RTreeView::AddRadio(RadioCL* pNewRadio,QModelIndex pParent){
     qDebug()<<"Adding radio: ";
     emit AddStationSig(pParent,pNewRadio);
 }
 
 
-void RTreeView::dragLeaveEvent(QDragLeaveEvent *event)
-{
+void RTreeView::dragLeaveEvent(QDragLeaveEvent *event){
     qDebug()<<"dragEventLeave";
     event->accept();
 }
 
-void RTreeView::dragEnterEvent(QDragEnterEvent *event)
-{
-    qDebug()<<"dragEnterEvent";
 
+void RTreeView::dragEnterEvent(QDragEnterEvent *event){
+    qDebug()<<"dragEnterEvent";
     event->acceptProposedAction();
     emit changed(event->mimeData());
 }
+
 
 QString RTreeView::GetTempFilePath(){
     QDir tDir;
     qDebug()<<"GetTempFilePath: "<<tDir.absoluteFilePath(PLAYLIST_TEMP);
     return (tDir.absoluteFilePath(PLAYLIST_TEMP));
+}
+
+
+void RTreeView::currentChanged(const QModelIndex & pCurrent, const QModelIndex & pPrevious){
+    //qDebug()<<"RTreeView::currentChanged";
+    scrollTo(pCurrent);
+    emit treeSelectionChanged(pCurrent,pPrevious);
 }

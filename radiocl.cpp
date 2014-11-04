@@ -11,6 +11,8 @@ RadioCL::RadioCL(QString pTitle,QStringList* pURLs){
 
     Title=pTitle;
     URLs=pURLs;
+
+
 }
 
 RadioCL::RadioCL(QString pTitle,QString pPlaylist,QStringList* pURLs){

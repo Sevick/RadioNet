@@ -17,7 +17,33 @@
    <iconset>
     <normaloff>:/images/AboutLogo.png</normaloff>:/images/AboutLogo.png</iconset>
   </property>
+  <property name="styleSheet">
+   <string notr="true">QDialog{
+   background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(100, 255, 100, 255), stop:1 rgba(0, 100, 0, 255));
+   padding: 0px;
+   spacing: 0px;
+}
+
+QMenu{
+   background-color: rgb(212, 208, 200);
+   border: 2px solid #555;
+   selection-color: green;
+   selection-background-color: white; 
+}</string>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="leftMargin">
+    <number>5</number>
+   </property>
+   <property name="topMargin">
+    <number>5</number>
+   </property>
+   <property name="rightMargin">
+    <number>5</number>
+   </property>
+   <property name="bottomMargin">
+    <number>5</number>
+   </property>
    <item>
     <widget class="QTextEdit" name="teHistory">
      <property name="font">
@@ -25,11 +51,20 @@
        <pointsize>10</pointsize>
       </font>
      </property>
+     <property name="tabChangesFocus">
+      <bool>false</bool>
+     </property>
      <property name="lineWrapMode">
       <enum>QTextEdit::NoWrap</enum>
      </property>
      <property name="readOnly">
       <bool>true</bool>
+     </property>
+     <property name="acceptRichText">
+      <bool>false</bool>
+     </property>
+     <property name="textInteractionFlags">
+      <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
      </property>
     </widget>
    </item>

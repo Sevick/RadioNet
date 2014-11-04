@@ -17,20 +17,25 @@ public:
     ~RadioEdit();
 
     int exec();
-
+    void mousePressEvent(QMouseEvent* event);
+    void mouseMoveEvent(QMouseEvent* event);
 private slots:
 
     void on_pbLoadURLs_clicked();
 
     void on_ePlaylist_textChanged(const QString &arg1);
 
-    void on_pbClearURLs_clicked();
+
 
 private:
     Ui::RadioEdit *ui;
     RadioCL* radioData;
 
+    bool mMoving;
+    QPoint mLastMousePosition;
+
     void fillURLs(bool pClear = true);
+    void setShadow(QPushButton* pButton);
 };
 
 #endif // RADIOEDIT_H

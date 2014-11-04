@@ -23,3 +23,8 @@ void MyGlobalHandler::Error(const char* es, bool bModal)
 void MyGlobalHandler::UpdRadioInfo(QString pRadioTitle, QString pRadioWeb, QString pGenre, QString pBPS){
     emit SendUpdRadioInfo(pRadioTitle,pRadioWeb, pGenre, pBPS);
 }
+
+
+void MyGlobalHandler::ClickRecord(){
+    emit ClickRecord();
+}

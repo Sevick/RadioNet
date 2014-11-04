@@ -1,30 +1,23 @@
- 
-#ifndef IN_NETRADIO
-#include "MF_nR_Bridge.h"
-#endif
-
 #include <QApplication>
 #include <QInputDialog>
 #include <QProcess>
-#include <QComboBox>
 #include <QDebug>
 #include <QTime>
+#include <QGraphicsOpacityEffect>
 #include "mainwindow.h"
-//#include "graphicsbutton.h"
 #include "MyThread.h"
 #include "myglobalhandler.h"
 #include "ui_mainwindow.h"
 #include "defs.h"
+#include "graphicsbutton.h"
 
 
-
-#ifdef IN_MANYFRACTALS
-#define _CRT_SECURE_NO_WARNINGS
-#pragma _CRT_SECURE_NO_WARNINGS
+#ifdef Q_OS_WIN
+    #define WIN32_LEAN_AND_MEAN
+    #include <windows.h>
+    #include <qt_windows.h>
+    #include <QtWinExtras>
 #endif
-
- 
-#define WndShow(wname,bVis)  {wname->setVisible(bVis);}
 
 
 char proxy[100]=""; // proxy server
@@ -34,7 +27,7 @@ bool bUseProxy = false;
 #define nCmds   4
 const char *commands[nCmds-2]={
         "oggenc -o \"%s\" -",                // oggenc (OGG)
-        "lame --preset standard --tt \"%s\" --ta \"%s\" --tc \"netRadio by Zac-Labs\" - \"%s\""
+        "lame --preset standard --tt \"%s\" --ta \"%s\" --tc \"%s\" - \"%s\""
         //
         // --tt (title) --ta (artist)  //  lame (MP3) "lame --alt-preset standard - %s_%s"
 };
@@ -43,11 +36,6 @@ const char *exts[nCmds]={".ogg",".mp3",".wav",".mp4"};
 
 
 QString			Title, Song, Artist;
-
-#ifdef IN_MANYFRACTALS
-MainWindow*             pMainWin = NULL;
-QApplication*           pApp = NULL;
-#endif
 
 bool bNR_Exists = false;
 bool cthread = false;
@@ -74,7 +62,7 @@ HSTREAM			recmixer=0;     // mixer non-decoding, 16 bit int not FP for mp3 recor
 // more globals for Record in netRadio ...
 int				input, source,
                                 inNetRadio;			// current input source
-int				encoder = 0;		// current encoder
+int				encoder = 1;		// current encoder
 HENCODE                 	m_Encoder = 0;		// the actual encoder ... sorry about the m_ ... confusion with object member.
 int				m_iRecNum = 0;		// the recorded file number, added to the name
 int				m_Station = -1;		// selected radio station vector index
@@ -162,7 +150,6 @@ bool MainWindow::InitBassErrorMap()
     // bHasRunOnce = bSuccess;
     return bSuccess;
 }
-
 
 
 UINT MainWindow::MsgSleep(const int& milsec)
@@ -274,6 +261,7 @@ void DoMeta()
 {
     bool bRestart = false ;
     if( !Title.isEmpty() && m_Encoder != 0 ) { // new song title has started ...
+        mgh.SendClickRecord();
         bRestart = true;
     }
 
@@ -319,11 +307,9 @@ void DoMeta()
             Title.sprintf(_T("Track %d"), ++m_iRecNum);
     }
     mgh.SendUpdTrackInfo(Title);
-/*
-    mgh.SetLabel4(Title, false);
+
     if( bRestart )
-        mgh.ClickRecord();  // restart with new title
-*/
+        mgh.SendClickRecord();  // restart with new title
 }
 
 void CALLBACK MetaSync(HSYNC /*handle*/, DWORD /*channel*/, DWORD /*data*/, void * /*user*/)
@@ -367,13 +353,14 @@ void MyThread::OpenURL()
     // The following line can take many seconds to complete.
     qDebug()<<"Creating stream";
     chan = BASS_StreamCreateURL(qPrintable(url), 0, dwFlags, StatusProc, 0); // open URL
+
     mgh.IsConnecting = false;
     mgh.m_tmr.invalidate();
 
     if (!chan) { // failed to open
         //mgh.SetLabel4("not playing", false);
         Error("\n Can't open the url stream \n");
-        qDebug()<<"Can't open the url stream";
+        qDebug()<<"Can't open the url stream. BASS Error code="<<BASS_ErrorGetCode();
         emit ConnectionStartFailed();
     } else{
         mgh.TriggerPrebuf = true;
@@ -430,7 +417,7 @@ void MainWindow::StartURL(QString pRadioURL)
     PreBuf_timer->stop();   // stop prebuffer monitoring
     //on_SetLabel4("connecting...", true);
     mgh.IsConnecting = true;  // set flag
-    mgh.m_tmr.start();        // start timing clock
+    //mgh.m_tmr.start();        // start timing clock
     tURL.url = url;           // set url text
     free(url);                // clean up
 
@@ -442,6 +429,10 @@ void MainWindow::StartURL(QString pRadioURL)
 
 void MainWindow::updateTimeout(){
     //qDebug()<<"updateTimer";
+
+    if (bInitPostInit){
+        bInitPostInit = false ;
+    }
 
     if( mgh.IsConnecting )
     {
@@ -497,9 +488,32 @@ void MainWindow::updateTimeout(){
         //ui->progressBar->setValue( max(5, min(100, int(inlevel * Factor))) );
     }
 
+    QWORD curPos=BASS_ChannelGetPosition(chan,BASS_POS_DECODE);
+
+    /*
+    QWORD cur_filepos = BASS_StreamGetFilePosition(chan, BASS_FILEPOS_DOWNLOAD);
+    DWORD alllen = BASS_StreamGetFilePosition(chan,BASS_FILEPOS_CURRENT);
+    DWORD bufpos = BASS_StreamGetFilePosition(chan,BASS_FILEPOS_BUFFER);
+    DWORD endpos = BASS_StreamGetFilePosition(chan,BASS_FILEPOS_END);
+    qDebug()<<"STREAMDATA:  "<<"CurPos="<<cur_filepos<<"  alllen="<<alllen<<"   bufpos="<<bufpos<<"   endpos"<<endpos;
+    DWORD curDec=BASS_ChannelGetPosition(chan,BASS_POS_DECODE);
+    qDebug()<<"CHANDATA: "<<"curPos="<<curPos<<" curDec="<<curDec;
+    */
+
     long bitRate;
     //DWORD curPos=BASS_ChannelGetPosition(chan,BASS_POS_BYTE);
-    DWORD curPos=BASS_ChannelGetPosition(chan,BASS_POS_DECODE);
+    //DWORD curPos=BASS_ChannelGetPosition(chan,BASS_POS_DECODE);
+    curPos=BASS_StreamGetFilePosition(chan,BASS_FILEPOS_DOWNLOAD);
+
+    BASS_CHANNELINFO tChanInfo;
+    BASS_ChannelGetInfo(chan,&tChanInfo);
+    int tBitPerSample=16;
+    if (tChanInfo.flags&BASS_SAMPLE_8BITS>0)
+        tBitPerSample=8;
+    if (tChanInfo.flags&BASS_SAMPLE_FLOAT>0)
+        tBitPerSample=32;
+    //qDebug()<<"tBitPerSample="<<tBitPerSample;
+
     if (curPos>0){
         if (PrevBitratePos==0){
             PrevBitrateTime.start();
@@ -507,38 +521,82 @@ void MainWindow::updateTimeout(){
             bitRate=0;
         }
         else{
-            long tDelta=PrevBitrateTime.elapsed();
-            bitRate=-1*(int)(((float)PrevBitratePos-curPos)*8/tDelta);
-            PrevBitratePos=curPos;
-            PrevBitrateTime.restart();
+            float tDelta=(float)PrevBitrateTime.elapsed()/1000;
+            //32 = 2*8 (2 channes, 8 bit)
+            if (curPos-PrevBitratePos!=0){
+                bitRate=(int)(((float)curPos-PrevBitratePos)*8/(tDelta*1024));
+                /*
+                qDebug()<<"PrevBitratePos="<<PrevBitratePos<<" curPos="<<curPos;
+                qDebug()<<"Position delta="<<curPos-PrevBitratePos;
+                qDebug()<<"TimeDelta="<<tDelta;
+                */
+                PrevBitratePos=curPos;
+                PrevBitrateTime.restart();
 
-            if (bitRateCurAvg<BITRATE_AVG_SAMPLES){
-                bitRateAvg=(bitRateAvg+bitRate)/(bitRateCurAvg);
-                bitRateCurAvg++;
+                if (bitRateCurAvg<=BITRATE_AVG_SAMPLES){
+                    bitRateAvg=(bitRateAvg+bitRate)/(bitRateCurAvg);
+                    bitRateCurAvg++;
+                }
+                else{
+                    bitRateAvg=(bitRateAvg+bitRate)/(BITRATE_AVG_SAMPLES);
+                    //qDebug()<<"Bitrate="<<bitRateAvg;
+                    setBitrateDisplay(QString::number(bitRateAvg));
+                }
             }
-            else{
-                bitRateAvg=(bitRateAvg+bitRate)/BITRATE_AVG_SAMPLES;
-                //qDebug()<<"Bitrate="<<bitRateAvg;
-                setBitrateDisplay(QString::number(bitRateAvg));
-            }
-
         }
     }
 
-    /*
-    QWORD cur_filepos = BASS_StreamGetFilePosition(chan, BASS_FILEPOS_DOWNLOAD) ;
-    DWORD alllen = BASS_StreamGetFilePosition(chan,BASS_FILEPOS_CURRENT);
-    DWORD bufpos = BASS_StreamGetFilePosition(chan,BASS_FILEPOS_BUFFER);
-    DWORD endpos = BASS_StreamGetFilePosition(chan,BASS_FILEPOS_END);
-    qDebug()<<"STREAMDATA:  "<<"CurPos="<<cur_filepos<<"  alllen="<<alllen<<"   bufpos="<<bufpos<<"   endpos"<<endpos;
-    */
+#ifdef VISUALS
+    //BASS_SFX_PluginRender(visPlugin, chan, visHDC);
 
-    /*
-    DWORD curDec=BASS_ChannelGetPosition(chan,BASS_POS_DECODE);
-    qDebug()<<"CHANDATA: "<<"curPos="<<curPos<<" curDec="<<curDec;
-    */
+    if (isVisRendering)
+        return;
+    isVisRendering=true;
+    if (bigVis && !bigVisRunning){
+        qDebug()<<"Starting WinVisualization "<<visualPlugin;
+        //visWin->setWindowFlags(Qt::Popup);
+        //visWinPlugin=BASS_SFX_PluginCreate(visualPlugin.toLatin1().data(),(HWND)visWin->winId(), visWin->width(),visWin->height(), 0);
+        visWinPlugin=BASS_SFX_PluginCreate(visualPlugin.toLatin1().data(),0,0,0, 0);
 
-    //BASS_SFX_PluginRender(visPlugin, chan, ::GetDC((HWND)wVis->effectiveWinId()));
+
+        //visWinPlugin=BASS_SFX_PluginCreate(visualPlugin.toLatin1().data(),(HWND)visWin->winId(), visWin->width(),visWin->height(), visWinHDC);
+        BASS_SFX_PluginSetStream(visWinPlugin,chan);
+        //BASS_SFX_PluginResize(visWinPlugin,visWin->width(),visWin->height());
+        LastVisWidth=visWin->width();
+        LastVisHeight=visWin->height();
+
+        if (BASS_SFX_PluginStart(visWinPlugin))
+            qDebug()<<"Visualization plugin started";
+        else
+            qDebug()<<"Visualization plugin FAILED to start";
+
+        bigVisRunning=true;
+    }
+
+    if (bigVisRunning){
+        //BASS_SFX_PluginRender(visWinPlugin, chan, visWinHDC);
+        BASS_SFX_PluginRender(visWinPlugin, chan, 0);
+
+
+        /*
+        if (!isVisResized && (LastVisWidth!=visWin->width() || LastVisHeight!=visWin->height())){
+            BASS_SFX_PluginResize(visWinPlugin,visWin->width(),visWin->height());
+            BASS_SFX_PluginRender(visWinPlugin, chan, visWinHDC);
+            LastVisWidth=visWin->width();
+            LastVisHeight=visWin->height();
+            isVisResized=true;
+        }
+
+        if (isVisResized)
+            isVisResized=false;
+        */
+
+    }
+    isVisRendering=false;
+
+#endif
+
+    slVolume->setValue(BASS_GetVolume()*slVolume->maximum());
 }
 
 int MainWindow::GetBufferStatus(){
@@ -581,8 +639,10 @@ void MainWindow::prebufTimeout()
         // if( !(cnt>22 && last_progress == progress) ) {
             this->PreBuf_timer->stop(); // finished prebuffering, stop monitoring
 
-            emit ConnectionEstablished();
             AddToHistory(currentRadio->GetTitle(),true);
+            emit ConnectionEstablished();
+            Spectrum_timer->start(SPECTRUM_TIME);
+
 
             cnt = 0;
             last_progress = 0;
@@ -635,7 +695,7 @@ void MainWindow::prebufTimeout()
 
                 mgh.SendUpdRadioInfo(radioName,radioURL,radioGenre,radioBitRate);
             } else{
-                //ui->label_5->setText(QString(""));
+                qDebug()<<"No tags";
             }
         }
         // get the stream title and set sync for subsequent titles
@@ -656,7 +716,19 @@ void MainWindow::prebufTimeout()
                 Error(_T("\n BASS_ChannelPlay of URL failed \n"));
             else{
                 bURL_Success = true;
-                //BASS_SFX_PluginStart(visPlugin);
+/*
+#ifdef VISUALS
+                BASS_SFX_PluginSetStream(visPlugin,chan);
+                BASS_SFX_PluginResize(visPlugin,lVis->width(),lVis->height());
+
+                if (BASS_SFX_PluginStart(visPlugin)){
+                    qDebug()<<"Visualization plugin started";
+                }
+                else{
+                    qDebug()<<"Visualization plugin FAILED to start";
+                }
+#endif
+*/
             }
         }
         else
@@ -690,7 +762,7 @@ void MainWindow::prebufTimeout()
                 PreBuf_timer->stop();   // stop prebuffer monitoring
                 //on_SetLabel4("connecting...", true);
                 mgh.IsConnecting = true;  // set flag
-                mgh.m_tmr.start();        // start timing clock
+                //mgh.m_tmr.start();        // start timing clock
                 tURL.OpenURL();   // try opening from main thread ...
                 return;
             }
@@ -720,6 +792,7 @@ void MainWindow::prebufTimeout()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    qDebug()<<"MainWindow::closeEvent";
     on_MainWindow_close();
     event->accept();
 }
@@ -750,12 +823,14 @@ void MainWindow::on_MainWindow_clickOff()
     //on_SetLabel4(_T("not playing"), true);
     Finished_Init = false;
     Finished_Init = true;
-
-
 }
 
 void MainWindow::INITDIALOG()
 {
+    input=0;
+    inNetRadio=0;
+    source=0;
+
     // win = ?? ;
     Title = _T("") ;
 #ifdef Q_OS_WIN
@@ -774,7 +849,7 @@ void MainWindow::INITDIALOG()
     //BASS_SetConfigPtr(BASS_CONFIG_NET_PROXY, NULL);
     // BASS_SetConfig( BASS_CONFIG_SPLIT_BUFFER, 5000);
     BASS_SetConfig( BASS_CONFIG_FLOATDSP, TRUE );
-    BASS_SetConfig( BASS_CONFIG_UPDATEPERIOD, 40 ); // the spec and update timers are 40 ms also.
+    BASS_SetConfig( BASS_CONFIG_UPDATEPERIOD, UPDATE_TIME ); // the spec and update timers are 40 ms also.
 
 #ifdef Q_OS_WIN
     // setup output device
@@ -813,9 +888,23 @@ void MainWindow::INITDIALOG()
 
     connect(&tURL,SIGNAL(ConnectionStartFailed()),this,SLOT(OnConnectionStartFailed()));
 
-    //visPlugin=BASS_SFX_PluginCreate("BBPlugin\\Spectrum.dll",(HWND)wVis->effectiveWinId(), wVis->width(),wVis->height(), 0);
+    qDebug()<<"BASS_RecordSetInput";
+    BASS_RecordSetInput(0, BASS_INPUT_ON, -1); // enable the selected
+    chan2 = BASS_RecordStart(44100, 2, MAKELONG(BASS_SAMPLE_FLOAT,25), &DuffRecording, NULL);
+    qDebug()<<"BASS_RecordSetInput done";
+
+
+#ifdef VISUALS
+    //visHDC=GetDC((HWND)lVis->winId());
+    visWinHDC=GetDC((HWND) visWin->winId());
+    //visPlugin=BASS_SFX_PluginCreate(VIS_SMALL_PLUG,(HWND)lVis->winId(), lVis->width(),lVis->height(), 0);
+    //lVis->setAttribute(Qt::WA_TranslucentBackground);
+#endif
+
 
     //Update_timer->start(40);
+
+
 }
 
 
@@ -857,4 +946,324 @@ void MainWindow::Cleanup(){
 	BASS_StreamFree(outmixer);
 	outmixer = 0;
 	bNR_Exists = false;
+    inNetRadio =0;
+    input=0;
+}
+
+void MainWindow::clearSpec(){
+    int iTotal = SPECWIDTH * SPECHEIGHT;
+    if (specbuf)
+        memset(specbuf, 255, iTotal);
+    specButton->repaint();
+}
+
+
+void MainWindow::specTimeout()
+{
+    static DWORD quietcount=0;
+    int y=0, y1=0;
+    int iTotal = SPECWIDTH * SPECHEIGHT;
+    int iMax = iTotal -1;
+    int iLLC = iTotal - SPECWIDTH ;
+
+    //specButton->IsSpecBeingDrawn = true ;
+
+    // update the Spectrum Display
+    if( specmode != 2 )
+        memset(specbuf, 255, iTotal);
+
+    if( specmode == 3 ) { // waveform
+        DWORD c, mixchans;
+        float *buf;
+        BYTE  PalChanColor;
+#ifdef Q_OS_WIN
+        if( bUseWASAPI_ )
+        {
+            if( input == inNetRadio )
+            {
+                BASS_CHANNELINFO ci;
+                BASS_ChannelGetInfo(chan, &ci); // get number of channels
+                mixchans = ci.chans ;
+            } else {
+                BASS_WASAPI_DEVICEINFO ci;
+                BASS_WASAPI_GetDeviceInfo(source, &ci); // get number of channels
+                mixchans = ci.mixchans ;
+            }
+        }
+        else
+#endif
+        {
+            BASS_CHANNELINFO ci;
+            BASS_ChannelGetInfo(((input==inNetRadio)? chan : chan2), &ci); // get number of channels
+            mixchans = ci.chans ;
+        }
+        buf = (float*)calloc(2*mixchans*SPECWIDTH, sizeof(float)); // allocate buffer for data
+
+#ifdef Q_OS_WIN
+        if( bUseWASAPI_ && input == inNetRadio )
+        {
+            BASS_Mixer_ChannelGetData(chan, buf, (mixchans*SPECWIDTH*sizeof(float))
+                                          | BASS_DATA_FLOAT | /* BASS_DATA_FFT_REMOVEDC | */
+                                          BASS_DATA_FFT_NOWINDOW | BASS_DATA_FFT_INDIVIDUAL ) ;
+        } else
+#endif
+        {
+            BASS_ChannelGetData(((input==inNetRadio)? chan : chan2), buf,(mixchans*SPECWIDTH*sizeof(float))
+                                | BASS_DATA_FLOAT | BASS_DATA_FFT_REMOVEDC |
+                                BASS_DATA_FFT_NOWINDOW | BASS_DATA_FFT_INDIVIDUAL );
+        }
+
+        for(c=0; c < mixchans; c++)
+        {
+            switch( c & 7 )
+            {
+            default:
+            case 0: PalChanColor =  18;  break; // green, darker for contrast with yellow
+            case 1: PalChanColor = 127;  break; // red
+            case 2: PalChanColor = 220;  break; // yellow 224
+            case 3: PalChanColor = 192;  break; // purple
+            case 4: PalChanColor = 254;  break; // light blue
+            case 5: PalChanColor = 253;  break; // pink
+            case 6: PalChanColor = 160;  break; // blue
+            case 7: PalChanColor = 204;  break; // light purple
+            }
+            for(int x=0; x < SPECWIDTH; x++)
+            {
+                int v= Round((1.0f - (1.0f/max(0.02f,inlevel))* buf[x*mixchans+c])*(SPECHEIGHT/2)) ; // invert and scale to fit display
+                if (v<0) v=0;
+                else if (v>=SPECHEIGHT) v=SPECHEIGHT-1;
+                if (!x) y=v;
+                do { // draw line from previous sample...
+                    if (y<v) y++;
+                    else if (y>v) y--;
+                    specbuf[max(0,min(iMax, iLLC - y*SPECWIDTH+x))] = PalChanColor ; // ((c&1)? 127 : 1 ); // left=green, right=red (could add more colours to palette for more chans)
+                } while (y!=v);
+            }
+        }
+        free( buf );
+    } else {
+        float fft[1024];
+        float csf = 127.0f / SPECHEIGHT ; // color scale factor so pallette is draw between 0 and 127
+#ifdef Q_OS_WIN
+        if( bUseWASAPI_ && input == inNetRadio )
+        {
+                BASS_Mixer_ChannelGetData(chan, fft, BASS_DATA_FFT2048);
+        } else
+#endif
+            BASS_ChannelGetData(((input==inNetRadio)? chan : chan2), fft, BASS_DATA_FFT2048); // get the FFT data
+
+        if( specmode == 0 ) { // "normal" FFT
+            for(int x=0; x < SPECWIDTH/2 ; x++)
+            {
+#if 1
+                y = Round( sqrt(fft[x+1])*3*SPECHEIGHT-4 ); // scale it (sqrt to make low values more visible)
+#else
+                y=fft[x+1]*10*SPECHEIGHT; // scale it (linearly)
+#endif
+                if (y>SPECHEIGHT) y=SPECHEIGHT; // cap it
+                if (x && (y1=(y+y1)/2)) // interpolate from previous to make the display smoother
+                    while (--y1>=0) specbuf[max(0, min(iMax, iLLC - y1*SPECWIDTH+x*2-1))] = int(float(y1 +1)*csf);
+                y1=y;
+                while (--y>=0) specbuf[max(0, min(iMax, iLLC - y*SPECWIDTH+x*2))] = int(float(y +1)*csf); // draw level
+            }
+        } else if( specmode == 1 ) { // logarithmic, acumulate & average bins
+            int b0=0;
+
+            int FullBandWidth = (SPECWIDTH / SPECBANDS) ;
+            int DrawBandWidth = Round(0.9 * FullBandWidth);
+            int iiMax = iMax - DrawBandWidth ;
+            for(int x=0;x<SPECBANDS;x++) {
+                float peak=0;
+                int b1= Round(pow(2,x*10.0/(SPECBANDS-1)));
+                if (b1>1023) b1=1023;
+                if (b1<=b0) b1=b0+1; // make sure it uses at least 1 FFT bin
+                for (;b0<b1;b0++)
+                    if (peak<fft[1+b0]) peak=fft[1+b0];
+                y= Round(sqrt(peak)*3*SPECHEIGHT-4); // scale it (sqrt to make low values more visible)
+                if (y>SPECHEIGHT) y=SPECHEIGHT; // cap it
+                while (--y>=0)
+                    memset( specbuf + max(0,min(iiMax, iLLC - y*SPECWIDTH+x*FullBandWidth )),
+                            int(float(y+1)*csf), DrawBandWidth); // draw bar
+            }
+        } else { // "3D" or specmode == 2
+            for(int x=0; x < SPECHEIGHT ; x++)
+            {
+                y= Round(sqrt(fft[x+1])*3*127); // scale it (sqrt to make low values more visible)
+                if (y>127) y=127; // cap it
+                specbuf[max(0,min(iMax, iLLC - x*SPECWIDTH+specpos))] = 128+y; // plot it
+            }
+            // move marker onto next position
+            specpos = (specpos+1) % SPECWIDTH;
+            for(int x=0;x<SPECHEIGHT;x++)
+                specbuf[max(0,min(iMax, iLLC - x*SPECWIDTH+specpos))] = 255;
+        }
+    }
+
+update_display:
+    // update the display
+    // this->specButton uses pixmap named: Spec which it copies from this->pSpec
+    // ... specButton's paintEvent uses a QPainter which replaces the BitBLT that was HERE.
+    // ... so here, we just add in any needed text and call update() ...
+    if( level < 0.01f || ((input != inNetRadio)? chan2 : chan) == 0 ){
+        quietcount++;
+        // it's been quiet for over 3 seconds
+        if( quietcount>NOSOUND_SPEC_DELAY/SPECTRUM_TIME){
+            this->specButton->MyText = "No sound" ;
+        }
+    }
+    else{
+        if (specButton->MyText!="")
+            specButton->MyText="";
+        quietcount = 0; // not quiet
+    }
+    //specButton->IsSpecBeingDrawn = false ;
+    specButton->repaint();
+    //specButton->update();
+}
+
+
+void MainWindow::on_specButton_clicked()
+{
+    specmode = (specmode+1)%4; // change spectrum mode
+    memset(specbuf, 0, SPECWIDTH * SPECHEIGHT);	// clear display
+}
+
+void MainWindow::on_pbRecord_clicked()
+{
+    on_ClickRecord();
+}
+
+
+#ifdef Q_OS_WIN
+bool MainWindow::DoACM_Dialog(bool Init)
+{
+    if( Init ) // initialize the acm as something in BASS library needs it, aka Mystery Error 37...
+    {
+        DWORD  dwFlags;
+        if( bUseWASAPI_ ) dwFlags = BASS_STREAM_DECODE ;
+        else dwFlags = BASS_STREAM_AUTOFREE ;
+        HSTREAM dumChan = BASS_StreamCreate(44100,2, dwFlags, NULL, NULL);
+        bool bRet = (BASS_Encode_GetACMFormat(dumChan, acmduncil, acmformlen, NULL,
+                    MAKELONG(BASS_ACM_SUGGEST|BASS_ACM_RATE|BASS_ACM_CHANS, 0x0002)) != 0);
+        BASS_StreamFree(dumChan);
+        return bRet;
+    }
+    else
+        return (BASS_Encode_GetACMFormat(((input != inNetRadio)? chan2 : chan), acmform, acmformlen, NULL, BASS_ACM_DEFAULT) != 0);
+}
+#endif
+
+void MainWindow::on_ClickRecord(){
+
+    qDebug()<<"MainWindow::on_ClickRecord";
+
+    if( m_Encoder == 0 )  // ... if not null then stop recording ...
+    {   // start recording ...
+        if( ((input != inNetRadio)? chan2 : chan) != 0 )  // anything to record ?
+        {
+            QString TitleOut, filename ;
+            // if filename has invalid characters, replace with under-score
+#ifdef Q_OS_WIN
+            QRegExp invalsh("[\\\\/|?\"<>:*]");
+#else
+            QRegExp invalsh("[\\\\/|?\"<>:*]");  // are these the same invalid filename characters in Linux + Mac ??
+#endif
+            Title.replace(invalsh, "_");
+            TitleOut.sprintf(_T("%s_%s"), qPrintable(Title), exts[encoder]);
+
+            TitleOut=recPath+TitleOut;
+            //
+            // if filename exists then add "(%d)", nCnt++ until not exists...
+            if( QFile::exists(TitleOut) )
+            {
+                for(int nCnt=2; nCnt < 16777576; nCnt++)
+                {
+                    TitleOut.sprintf(_T("%s_(%d)%s"), qPrintable(Title), nCnt, exts[encoder]);
+                    if( !QFile::exists(TitleOut) ) break;
+                    if( nCnt == 16777575 )
+                    {
+                        // this is OVERKILL programming, as either audio stream buffer will overflow
+                        // while this is looping, or a big chuck at the begining of the track will be lost.
+                        qDebug()<<"Generating unique filename";
+                        Title.append("_(16777576)");
+                        nCnt = 1;
+                    }
+                }
+            }
+            qDebug()<<"CurrentEncoder="<<encoder;
+            switch( encoder ){
+            case 3:
+#ifdef  Q_OS_MAC
+                m_Encoder = BASS_Encode_StartCAFile(((input != inNetRadio)? chan2 : chan), 'mp4f', 'aac ',
+                                                    BASS_ENCODE_AUTOFREE | BASS_ENCODE_FP_16BIT, 128000,
+                                                    qPrintable(TitleOut));
+                if( !m_Encoder )
+                {   // couldn't start the CoreAudio encoder
+                    Error(" Couldn't start CoreAudio encoding ");
+                    bIsEncoding = false;
+                    return;
+                }
+#else
+                MsgBox(_T("\n Sorry, Mac OSX Only Format ... \n"));
+                return;
+#endif
+                break;
+            case 2:
+#ifdef Q_OS_WIN
+                if( acmform->nChannels != 0 || DoACM_Dialog() ){   // select the ACM codec
+                    m_Encoder = BASS_Encode_StartACMFile( ((input != inNetRadio)? chan2 : chan) ,
+                                                          acmform, BASS_ENCODE_AUTOFREE, qPrintable(TitleOut) );
+                    if( !m_Encoder ){   // couldn't start the ACM encoder
+                        Error(" Couldn't start ACM encoding ");
+                        bIsEncoding = false;
+                        return;
+                    }
+                }
+#else
+                MsgBox(_T("\n Sorry, Windows Only Format ... \n"));
+                return;
+#endif
+                break;
+            default:
+                char cmd[1200];
+                sprintf(cmd, /*254,*/ _T("%s//%s"), qPrintable(QApplication::applicationDirPath()), commands[encoder]);
+                QString comment="Recorded from "+currentRadio->GetTitle()+" using Radiola player";
+                filename.sprintf(cmd, qPrintable(Song), qPrintable(Artist), qPrintable(comment),qPrintable(TitleOut) );
+                qDebug()<<"Recording file:"<<filename;
+
+                m_Encoder = BASS_Encode_Start(
+                            ((input != inNetRadio)? chan2 : chan /*((bUseWASAPI_)? outmixer : chan)*/ )
+                            // chan      // this works on both Windows+Linux, but is it buffered ?
+                            // outmixer  // this works only on Windows(WASAPI) with 2 channel stereo(no file made 5.1 systems), and is buffered. (on Linux, no file is made!!)
+                            , qPrintable( filename ),
+                            BASS_ENCODE_AUTOFREE | BASS_ENCODE_FP_16BIT,
+                            NULL, 0);  // start the OGG/MP3 encoder
+                if( !m_Encoder ){
+                    Error("  Couldn't start encoding ... ");
+                    bIsEncoding = false;
+                    return;
+                }
+                break;
+            }
+            bIsEncoding = true ;
+            qDebug()<<"Recording started m_Encoder="<<m_Encoder;
+        } // end if chan != 0
+        else
+            qDebug()<<"nothing to record";
+    }
+    else{
+        qDebug()<<"stopping the record... m_Encoder="<<m_Encoder;
+        if( BASS_Encode_Stop( m_Encoder ) == FALSE )
+            Error(_T("\n BASS_Encode_Stop Failed \n"));
+        else
+        {
+            m_Encoder = 0;
+            bIsEncoding = false;
+        }
+    }
+
+    if (bIsEncoding)
+        onRecordingStarts();
+    else
+        onRecordingStops();
 }

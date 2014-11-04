@@ -2,6 +2,8 @@
 #define SHOWHISTORY_H
 
 #include <QDialog>
+#include <QMouseEvent>
+#include <QPoint>
 
 namespace Ui {
 class ShowHistory;
@@ -18,14 +20,27 @@ public:
 private:
     Ui::ShowHistory *ui;
 
-    void readSettings();
-    void writeSettings();
+    QFile* historyFile;
+    qint64 historySize;
+
     void reject();
+
+    QPoint mLastMousePosition;
 
 
 public slots:
     void OnHistoryChanged(QString pNewLine);
 
+protected:
+    void readNextBlock();
+    void readSettings();
+    void writeSettings();
+
+    void mousePressEvent(QMouseEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
+
+private slots:
+    void onEditScroll(int pScrollPos);
 };
 
 #endif // SHOWHISTORY_H

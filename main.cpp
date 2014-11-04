@@ -3,7 +3,7 @@
 #include <QApplication>
 #include <QMessageBox>
 #include <QStandardPaths>
-#include <qtsingleapplication.h>
+#include "qtsingleapplication.h"
 
 QString AppPath;
 
@@ -11,12 +11,25 @@ int main(int argc, char *argv[])
 {
     Q_INIT_RESOURCE(Radiola);
 
-    //QApplication a(argc, argv);
+  //  QApplication a(argc, argv);
     QtSingleApplication a(argc, argv);
     if (a.sendMessage("Wakeup!"))
         return 0;
 
-    AppPath=QDir::toNativeSeparators(QStandardPaths::standardLocations(QStandardPaths::DataLocation).at(0)+"/");
+#ifdef Q_OS_WIN
+   AppPath=QDir::toNativeSeparators(QStandardPaths::standardLocations(QStandardPaths::DataLocation).at(0)+"/");
+#endif
+
+#ifdef Q_OS_MAC
+   AppPath=AppPath.fromLatin1(argv[0]);
+   AppPath+="/";
+#endif
+
+#ifdef Q_OS_MAC
+    a.setAttribute(Qt::AA_UseHighDpiPixmaps);
+#endif
+
+
     QDir tAppDataDir(AppPath);
     if (!tAppDataDir.exists())
         tAppDataDir.mkdir(AppPath);

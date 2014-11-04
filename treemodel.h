@@ -101,7 +101,7 @@ public:
     void saveToDisk();   
     Qt::DropActions supportedDropActions() const;
     TreeItem* GetRootItem(){return rootItem;};
-
+    //QModelIndex getRootIndex();
 
 private:
     void setupModelData(const QStringList &lines,  TreeItem *parent);

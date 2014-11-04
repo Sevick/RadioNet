@@ -13,6 +13,7 @@ public:
     void UpdRadioInfo(QString pRadioTitle, QString pRadioWeb, QString pGenre, QString pBPS);
     void SyncLost();
     void PlaybackStarts();
+    void ClickRecord();
 
     bool   IsConnecting;
     bool   TriggerPrebuf;
@@ -24,6 +25,7 @@ signals:
     void SendUpdRadioInfo(QString pRadioTitle, QString pRadioWeb, QString pGenre, QString pBPS);
     void SendSyncLost();
     void SendPlaybackStarts();
+    void SendClickRecord();
 
 };
 
